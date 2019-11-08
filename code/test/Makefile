@@ -112,7 +112,7 @@ ifeq ($(hosttype),unknown)
 PROGRAMS = unknownhost
 else
 # change this if you create a new test program!
-PROGRAMS = add halt shell matmult sort segments consoleRead consoleWrite
+PROGRAMS = add halt shell matmult sort segments consoleRead consoleWrite threadFork
 endif
 
 all: $(PROGRAMS)
@@ -155,6 +155,12 @@ consoleWrite.o: consoleWrite.c
 consoleWrite: consoleWrite.o start.o
 	$(LD) $(LDFLAGS) start.o consoleWrite.o -o consoleWrite.coff
 	$(COFF2NOFF) consoleWrite.coff consoleWrite
+
+threadFork.o: threadFork.c
+	$(CC) $(CFLAGS) -c threadFork.c
+threadFork: threadFork.o start.o
+	$(LD) $(LDFLAGS) start.o threadFork.o -o threadFork.coff
+	$(COFF2NOFF) threadFork.coff threadFork
 
 segments.o: segments.c
 	$(CC) $(CFLAGS) -c segments.c

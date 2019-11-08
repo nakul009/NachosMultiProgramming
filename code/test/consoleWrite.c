@@ -3,9 +3,9 @@
 int main()
 {
     int result;
-
-    result = ConsoleWrite();
-
+    char *buffer;
+    result = ConsoleRead(buffer, 15);
+    result = ConsoleWrite("Write called from ConsoleWrite ", 30);
     Halt();
     /* not reached */
 }

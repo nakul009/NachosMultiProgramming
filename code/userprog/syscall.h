@@ -35,7 +35,8 @@
 #define SC_ThreadExit 14
 #define SC_ThreadJoin 15
 #define SC_ConsoleRead 16
-#define SC_ConsoleWrite 17
+#define SC_ConsoleWrite 18
+#define SC_ThreadForking 19
 
 #define SC_Add 42
 
@@ -135,9 +136,9 @@ int Write(char *buffer, int size, OpenFileId id);
  */
 int Read(char *buffer, int size, OpenFileId id);
 
-int ConsoleRead(int size);
+int ConsoleRead(char *buffer, int size);
 
-int ConsoleWrite();
+int ConsoleWrite(char *buffer, int size);
 
 /* Set the seek position of the open file "id"
  * to the byte "position".
@@ -160,6 +161,8 @@ int Close(OpenFileId id);
  * Return a positive ThreadId on success, negative error code on failure
  */
 ThreadId ThreadFork(void (*func)());
+
+ThreadId ThreadForking(void (*func)());
 
 /* Yield the CPU to another runnable thread, whether in this address space 
  * or not. 

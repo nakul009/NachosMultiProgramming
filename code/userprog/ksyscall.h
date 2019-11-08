@@ -17,12 +17,34 @@ void SysHalt()
 {
   kernel->interrupt->Halt();
 }
-int SysConsoleRead(int sz)
+void SysConsoleRead(int address, int sz)
 {
-  char *s = "In Read System call ";
-  //char buf[sz];
-  //cin >> buf;
+  char *s = "In Read call  ";
+
+  for (int i = 0; i < sz; i++)
+  {
+    int number = (int)(s[i]);
+    kernel->machine->WriteMem(i, 1, s[i]);
+    address++;
+  }
+}
+
+void SysConsoleWrite(int address, int character)
+{
+  //printf("SysWrite call | Writing to console with lenghth = %d ", &sz);
+  //printf("System call write is initiated here\n");
   int i = 0;
+  int incomingCharacter;
+  while (i < character)
+  {
+    if (kernel->machine->ReadMem(address, 1, &incomingCharacter))
+    {
+      char str = char(incomingCharacter);
+      std::cout << str;
+    }
+    address++;
+    i++;
+  }
 }
 
 int SysAdd(int op1, int op2)

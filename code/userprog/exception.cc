@@ -47,11 +47,17 @@
 //	"which" is the kind of exception.  The list of possible exceptions
 //	is in machine.h.
 //----------------------------------------------------------------------
-
+void UserFunction(int fncAddr)
+{
+	kernel->currentThread->RestoreUserState();
+	std::cout << "\tName of Running thread is: " << kernel->currentThread->getName() << std::endl;
+	kernel->machine->Run();
+	return;
+}
 void ExceptionHandler(ExceptionType which)
 {
 	int type = kernel->machine->ReadRegister(2);
-
+	int size;
 	DEBUG(dbgSys, "Received Exception " << which << " type: " << type << "\n");
 
 	switch (which)
@@ -59,14 +65,6 @@ void ExceptionHandler(ExceptionType which)
 	case SyscallException:
 		switch (type)
 		{
-		case SC_Halt:
-			DEBUG(dbgSys, "Shutdown, initiated by user program.\n");
-
-			SysHalt();
-
-			ASSERTNOTREACHED();
-			break;
-
 		case SC_Add:
 			DEBUG(dbgSys, "Add " << kernel->machine->ReadRegister(4) << " + " << kernel->machine->ReadRegister(5) << "\n");
 
@@ -98,11 +96,15 @@ void ExceptionHandler(ExceptionType which)
 			break;
 
 		case SC_ConsoleRead:
+		{
 			DEBUG(dbgSys, "Console Read exception is generated\n");
-			cout << "Exception is generated here" << endl;
-			int result;
-			int size = kernel->machine->ReadRegister(5);
-			result = SysConsoleRead(size);
+			cout << "\nException is generated here" << endl;
+			int resultForRead;
+			size = kernel->machine->ReadRegister(5);
+			int tempAddress = kernel->machine->ReadRegister(4);
+			SysConsoleRead(tempAddress, size);
+
+			// kernel->machine->WriteRegister(2, (int)resultForRead);
 
 			{
 				/* set previous programm counter (debugging only)*/
@@ -114,15 +116,21 @@ void ExceptionHandler(ExceptionType which)
 				/* set next programm counter for brach execution */
 				kernel->machine->WriteRegister(NextPCReg, kernel->machine->ReadRegister(PCReg) + 4);
 			}
-
 			return;
-
 			ASSERTNOTREACHED();
 			break;
+		}
 
 		case SC_ConsoleWrite:
-			DEBUG(dbgSys, "Console Read exception is generated\n");
-			cout << "Exception is generated here in consoleWrite" << endl;
+		{
+			DEBUG(dbgSys, "Console Write exception is generated\n");
+			size = kernel->machine->ReadRegister(5);
+			int tempAddressForWrite = kernel->machine->ReadRegister(4);
+			SysConsoleWrite(tempAddressForWrite, size);
+
+			// kernel->machine->WriteRegister(2, (int)tempVariable);
+
+			cout << "\nException is generated here in consoleWrite" << endl;
 			{
 				/* set previous programm counter (debugging only)*/
 				kernel->machine->WriteRegister(PrevPCReg, kernel->machine->ReadRegister(PCReg));
@@ -133,12 +141,44 @@ void ExceptionHandler(ExceptionType which)
 				/* set next programm counter for brach execution */
 				kernel->machine->WriteRegister(NextPCReg, kernel->machine->ReadRegister(PCReg) + 4);
 			}
-
 			return;
+			ASSERTNOTREACHED();
+			break;
+		}
+		case SC_ThreadFork:
+		{
+			int tempThreadAddressReg = kernel->machine->ReadRegister(4);
+			Thread *newThread = new Thread(kernel->currentThread->getName());
+			newThread->space = new AddrSpace(*(kernel->currentThread->space));
+			newThread->SaveUserState();
+			newThread->userRegisters[PCReg] = tempThreadAddressReg;
+			newThread->userRegisters[NextPCReg] = tempThreadAddressReg + 4;
+			newThread->Fork((VoidFunctionPtr)UserFunction, (void *)0);
+			cout << "\nException is generated here in consoleWrite" << endl;
+			kernel->currentThread->Yield();
+			{
+				/* set previous programm counter (debugging only)*/
+				kernel->machine->WriteRegister(PrevPCReg, kernel->machine->ReadRegister(PCReg));
+
+				/* set programm counter to next instruction (all Instructions are 4 byte wide)*/
+				kernel->machine->WriteRegister(PCReg, kernel->machine->ReadRegister(PCReg) + 4);
+
+				/* set next programm counter for brach execution */
+				kernel->machine->WriteRegister(NextPCReg, kernel->machine->ReadRegister(PCReg) + 4);
+			}
+			return;
+			ASSERTNOTREACHED();
+			break;
+		}
+		case SC_Halt:
+		{
+			DEBUG(dbgSys, "Shutdown, initiated by user program.\n");
+
+			SysHalt();
 
 			ASSERTNOTREACHED();
 			break;
-
+		}
 		default:
 			cerr << "Unexpected system call " << type << "\n";
 			break;
